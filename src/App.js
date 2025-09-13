@@ -12,12 +12,6 @@ function GameTable() {
   const { state } = useGame();
   const { connect, sendMessage } = useWebSocket();
 
-  useEffect(() => {
-    if (state.table && state.sessionToken) {
-      connect(state.table.id, state.sessionToken);
-    }
-  }, [state.table, state.sessionToken, connect]);
-
   const handlePlayCard = (cardIndex, chosenColor) => {
     sendMessage({
       type: "play_card",

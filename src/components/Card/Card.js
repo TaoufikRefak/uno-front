@@ -27,7 +27,7 @@ function Card({ card, onClick, isPlayable = false, isSelected = false }) {
 
   const getCardContent = () => {
     if (card.type === "number") {
-      return card.value || card.number; // Handle both value and number properties
+      return card.value; // Handle both value and number properties
     }
 
     switch (card.type) {
@@ -51,7 +51,7 @@ function Card({ card, onClick, isPlayable = false, isSelected = false }) {
       <div className="card-content">{getCardContent()}</div>
       {/* Show the number in the corner for number cards */}
       {card.type === "number" && (
-        <div className="card-corner">{card.value || card.number}</div>
+        <div className="card-corner">{card.value}</div>
       )}
       {card.type === "reverse" && <div className="card-corner">R</div>}
     </div>

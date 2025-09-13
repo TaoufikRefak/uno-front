@@ -15,6 +15,11 @@ const initialState = {
 
 function gameReducer(state, action) {
   switch (action.type) {
+    case "ADD_CARDS_TO_HAND":
+      return {
+        ...state,
+        hand: [...state.hand, ...action.payload],
+      };
     case "SET_LOADING":
       return { ...state, loading: action.payload };
 

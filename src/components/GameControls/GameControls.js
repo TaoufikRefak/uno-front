@@ -14,7 +14,7 @@ function GameControls({
     <div className="game-controls">
       <h3>Game Controls</h3>
 
-      {isCurrentPlayer && gameStatus === "in_progress" && (
+      {gameStatus === "in_progress" && (
         <div className="player-controls">
           <button onClick={onDrawCard} className="control-button draw">
             Draw Card

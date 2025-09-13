@@ -7,62 +7,6 @@ export function useWebSocket() {
   const websocketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
-  const connect = useCallback(
-    (tableId, sessionToken) => {
-      if (!tableId || !sessionToken) {
-        dispatch({
-          type: "SET_ERROR",
-          payload: "Missing table ID or session token",
-        });
-        return;
-      }
-
-      // Clear any existing reconnect timeout
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      // Close existing connection if any
-      if (websocketRef.current) {
-        websocketRef.current.close();
-        websocketRef.current = null;
-      }
-
-      const wsUrl = `ws://localhost:8000/ws/table/${tableId}?session_token=${sessionToken}`;
-
-      websocketRef.current = new UnoWebSocket(
-        wsUrl,
-        handleMessage,
-        () => {
-          dispatch({ type: "SET_CONNECTION_STATUS", payload: "connected" });
-          console.log("WebSocket connected");
-        },
-        (event) => {
-          dispatch({ type: "SET_CONNECTION_STATUS", payload: "disconnected" });
-          console.log("WebSocket disconnected", event);
-
-          // Only attempt to reconnect if we're not intentionally closing
-          if (websocketRef.current && websocketRef.current.shouldReconnect) {
-            reconnectTimeoutRef.current = setTimeout(() => {
-              connect(tableId, sessionToken);
-            }, 2000); // Wait 2 seconds before reconnecting
-          }
-        },
-        (error) => {
-          dispatch({
-            type: "SET_ERROR",
-            payload: "WebSocket connection error",
-          });
-          console.error("WebSocket error:", error);
-        }
-      );
-
-      websocketRef.current.connect();
-    },
-    [dispatch]
-  );
-
   const handleMessage = (message) => {
     console.log("Received message:", message);
 
@@ -90,11 +34,10 @@ export function useWebSocket() {
         break;
 
       case "card_drawn":
-        // Update hand with new cards
         if (message.data && message.data.cards) {
           dispatch({
-            type: "UPDATE_PLAYER_HAND",
-            payload: [...state.hand, ...message.data.cards],
+            type: "ADD_CARDS_TO_HAND",
+            payload: message.data.cards,
           });
         }
         break;
@@ -133,6 +76,76 @@ export function useWebSocket() {
     }
   };
 
+  const connect = useCallback(
+    (tableId, sessionToken) => {
+      // Don't reconnect if already connected/connecting
+      if (
+        websocketRef.current &&
+        (websocketRef.current.getReadyState() === WebSocket.OPEN ||
+          websocketRef.current.getReadyState() === WebSocket.CONNECTING)
+      ) {
+        console.log("WebSocket already connected or connecting, skipping...");
+        return;
+      }
+
+      if (!tableId || !sessionToken) {
+        dispatch({
+          type: "SET_ERROR",
+          payload: "Missing table ID or session token",
+        });
+        return;
+      }
+
+      // Clear any existing reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      // Close existing connection if any
+      if (websocketRef.current) {
+        websocketRef.current.close();
+        websocketRef.current = null;
+      }
+
+      const wsUrl = `ws://localhost:8000/ws/table/${tableId}?session_token=${sessionToken}`;
+
+      // Create a custom onClose handler that uses a longer delay
+      const onCloseHandler = (event) => {
+        dispatch({ type: "SET_CONNECTION_STATUS", payload: "disconnected" });
+        console.log("WebSocket disconnected", event);
+
+        // Only attempt to reconnect if we're not intentionally closing
+        if (websocketRef.current && websocketRef.current.shouldReconnect) {
+          console.log("Scheduling reconnection in 5 seconds...");
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect(tableId, sessionToken);
+          }, 5000); // Wait 5 seconds before reconnecting
+        }
+      };
+
+      websocketRef.current = new UnoWebSocket(
+        wsUrl,
+        handleMessage,
+        () => {
+          dispatch({ type: "SET_CONNECTION_STATUS", payload: "connected" });
+          console.log("WebSocket connected");
+        },
+        onCloseHandler, // Use the custom onClose handler
+        (error) => {
+          dispatch({
+            type: "SET_ERROR",
+            payload: "WebSocket connection error",
+          });
+          console.error("WebSocket error:", error);
+        }
+      );
+
+      websocketRef.current.connect();
+    },
+    [dispatch]
+  );
+
   const sendMessage = (message) => {
     if (
       websocketRef.current &&
@@ -140,6 +153,7 @@ export function useWebSocket() {
     ) {
       return websocketRef.current.send(message);
     }
+    console.error("WebSocket is not connected, cannot send message");
     return false;
   };
 
@@ -150,6 +164,7 @@ export function useWebSocket() {
     }
 
     if (websocketRef.current) {
+      websocketRef.current.shouldReconnect = false; // Prevent reconnection
       websocketRef.current.close();
       websocketRef.current = null;
     }
@@ -158,12 +173,15 @@ export function useWebSocket() {
   }, [dispatch]);
 
   useEffect(() => {
+    // Only connect if we have both table and session token
     if (state.table && state.sessionToken) {
+      console.log("Connecting to WebSocket...");
       connect(state.table.id, state.sessionToken);
     }
 
     // Cleanup on unmount
     return () => {
+      console.log("Cleaning up WebSocket connection...");
       disconnect();
     };
   }, [state.table, state.sessionToken, connect, disconnect]);
