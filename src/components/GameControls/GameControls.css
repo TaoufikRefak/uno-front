@@ -1,0 +1,61 @@
+.game-controls {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-controls h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.control-button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  margin: 5px;
+  transition: background-color 0.2s;
+}
+
+.control-button.draw {
+  background-color: #3498db;
+  color: white;
+}
+
+.control-button.draw:hover {
+  background-color: #2980b9;
+}
+
+.control-button.uno {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.control-button.uno:hover {
+  background-color: #c0392b;
+}
+
+.control-button.challenge {
+  background-color: #f39c12;
+  color: white;
+}
+
+.control-button.challenge:hover {
+  background-color: #d35400;
+}
+
+.challenge-controls {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+}
+
+.challenge-controls p {
+  margin: 0 0 10px 0;
+  color: #6c757d;
+  font-size: 14px;
+}

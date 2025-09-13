@@ -1,73 +1,3 @@
-.App {
-  text-align: center;
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.game-table {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.game-header {
-  background-color: #2c3e50;
-  color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.game-content {
-  display: flex;
-  gap: 20px;
-}
-
-.game-sidebar {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.game-main {
-  flex: 2;
-}
-
-.error-message {
-  background-color: #ff6b6b;
-  color: white;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.start-game-prompt {
-  background-color: #feca57;
-  padding: 15px;
-  border-radius: 8px;
-  margin-top: 20px;
-}
-
-.start-game-button {
-  background-color: #1dd1a1;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-top: 10px;
-}
-
-.start-game-button:hover {
-  background-color: #10ac84;
-}
-
-/* Lobby Styles */
 .lobby {
   max-width: 800px;
   margin: 0 auto;
@@ -76,21 +6,38 @@
 
 .username-section {
   margin-bottom: 20px;
+  background-color: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.username-section label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
 }
 
 .username-section input {
+  width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
-  margin-left: 10px;
+}
+
+.tables-section {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .create-table-btn {
@@ -100,6 +47,7 @@
   padding: 10px 15px;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .create-table-form {
@@ -122,6 +70,7 @@
   padding: 10px 15px;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .tables-list {
@@ -135,9 +84,20 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px;
-  background-color: white;
+  background-color: #f8f9fa;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #dee2e6;
+}
+
+.table-info h3 {
+  margin: 0 0 5px 0;
+  color: #2c3e50;
+}
+
+.table-info p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
 }
 
 .join-table-btn {
@@ -147,6 +107,7 @@
   padding: 10px 15px;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .join-table-btn:disabled {

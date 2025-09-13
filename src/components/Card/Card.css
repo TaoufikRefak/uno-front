@@ -1,0 +1,142 @@
+/* Card.css */
+.card {
+  width: 60px;
+  height: 90px;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card-content {
+  font-size: 1.5rem;
+}
+
+.card-red {
+  background-color: #ff5252;
+  color: white;
+}
+
+.card-blue {
+  background-color: #2196f3;
+  color: white;
+}
+.card-corner {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.card-green {
+  background-color: #4caf50;
+  color: white;
+}
+
+.card-yellow {
+  background-color: #ffeb3b;
+  color: #333;
+}
+
+.card-wild {
+  background: linear-gradient(45deg, #ff5252, #2196f3, #4caf50, #ffeb3b);
+  color: white;
+}
+
+.card-playable {
+  border: 2px solid gold;
+  box-shadow: 0 0 10px gold;
+}
+
+.card-non-playable {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.card-selected {
+  transform: translateY(-10px);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+/* PlayerHand.css */
+.player-hand {
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.color-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.color-picker {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.color-options {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.color-option {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.color-option.red {
+  background-color: #ff5252;
+}
+.color-option.blue {
+  background-color: #2196f3;
+}
+.color-option.green {
+  background-color: #4caf50;
+}
+.color-option.yellow {
+  background-color: #ffeb3b;
+}
+
+.cancel-button {
+  margin-top: 10px;
+  padding: 5px 15px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

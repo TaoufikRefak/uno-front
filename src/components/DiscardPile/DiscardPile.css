@@ -1,0 +1,23 @@
+.discard-pile {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.discard-pile h3 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.pile-content {
+  display: flex;
+  justify-content: center;
+  min-height: 140px;
+  align-items: center;
+}
+
+.empty-pile {
+  color: #6c757d;
+  font-style: italic;
+}
