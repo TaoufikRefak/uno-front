@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useGame } from "../contexts/GameContext";
 import UnoWebSocket from "../services/websocket";
 
@@ -6,6 +6,7 @@ export function useWebSocket() {
   const { state, dispatch } = useGame();
   const websocketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   const handleMessage = (message) => {
     console.log("Received message:", message);
@@ -113,29 +114,29 @@ export function useWebSocket() {
 
       const wsUrl = `ws://localhost:8000/ws/table/${tableId}?session_token=${sessionToken}`;
 
-      // Create a custom onClose handler that uses a longer delay
-      const onCloseHandler = (event) => {
-        dispatch({ type: "SET_CONNECTION_STATUS", payload: "disconnected" });
-        console.log("WebSocket disconnected", event);
-
-        // Only attempt to reconnect if we're not intentionally closing
-        if (websocketRef.current && websocketRef.current.shouldReconnect) {
-          console.log("Scheduling reconnection in 5 seconds...");
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect(tableId, sessionToken);
-          }, 5000); // Wait 5 seconds before reconnecting
-        }
-      };
-
       websocketRef.current = new UnoWebSocket(
         wsUrl,
         handleMessage,
         () => {
+          setIsConnected(true);
           dispatch({ type: "SET_CONNECTION_STATUS", payload: "connected" });
           console.log("WebSocket connected");
         },
-        onCloseHandler, // Use the custom onClose handler
+        (event) => {
+          setIsConnected(false);
+          dispatch({ type: "SET_CONNECTION_STATUS", payload: "disconnected" });
+          console.log("WebSocket disconnected", event);
+
+          // Only attempt to reconnect if we're not intentionally closing
+          if (websocketRef.current && websocketRef.current.shouldReconnect) {
+            console.log("Scheduling reconnection in 5 seconds...");
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect(tableId, sessionToken);
+            }, 5000);
+          }
+        },
         (error) => {
+          setIsConnected(false);
           dispatch({
             type: "SET_ERROR",
             payload: "WebSocket connection error",
@@ -151,23 +152,43 @@ export function useWebSocket() {
 
   const sendMessage = (message) => {
     if (
+      isConnected &&
       websocketRef.current &&
       websocketRef.current.getReadyState() === WebSocket.OPEN
     ) {
       return websocketRef.current.send(message);
     }
     console.error("WebSocket is not connected, cannot send message");
+
+    // Try to reconnect if not connected
+    if (state.table && state.sessionToken) {
+      console.log("Attempting to reconnect...");
+      connect(state.table.id, state.sessionToken);
+
+      // Queue the message to send after reconnection
+      setTimeout(() => {
+        if (
+          isConnected &&
+          websocketRef.current &&
+          websocketRef.current.getReadyState() === WebSocket.OPEN
+        ) {
+          websocketRef.current.send(message);
+        }
+      }, 1000);
+    }
+
     return false;
   };
 
   const disconnect = useCallback(() => {
+    setIsConnected(false);
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
 
     if (websocketRef.current) {
-      websocketRef.current.shouldReconnect = false; // Prevent reconnection
+      websocketRef.current.shouldReconnect = false;
       websocketRef.current.close();
       websocketRef.current = null;
     }
@@ -194,5 +215,6 @@ export function useWebSocket() {
     disconnect,
     sendMessage,
     connectionStatus: state.connectionStatus,
+    isConnected,
   };
 }

@@ -10,10 +10,28 @@ import "./App.css";
 
 function GameTable() {
   const { state, dispatch } = useGame();
-  const { connect, sendMessage } = useWebSocket();
+  const { connect, sendMessage, isConnected } = useWebSocket();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("access_token");
+    if (token) {
+      localStorage.setItem("auth_token", token);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // Add a check for spectator role
   const isSpectator = state.role === "spectator";
+
+  // Add loading state check
+  if (!state.table || !state.gameState) {
+    return <Lobby />;
+  }
+
+  // Safe access to gameState properties
+  const gameState = state.gameState || {};
+  const table = state.table || {};
 
   // Disable game actions for spectators
   const handlePlayCard = (cardIndex, chosenColor) => {
@@ -63,34 +81,42 @@ function GameTable() {
   };
 
   const handleStartGame = () => {
+    if (!isConnected) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: "Not connected to the game server. Please wait...",
+      });
+
+      if (state.table && state.sessionToken) {
+        connect(state.table.id, state.sessionToken);
+      }
+      return;
+    }
+
     if (isSpectator) {
       dispatch({ type: "SET_ERROR", payload: "Spectators cannot start games" });
       return;
     }
+
     sendMessage({
       type: "start_game",
     });
   };
 
-  if (!state.table || !state.gameState) {
-    return <Lobby />;
-  }
-
+  // Safe topCard access
   const topCard =
-    state.gameState.discard_top ||
-    (state.gameState.discard_pile && state.gameState.discard_pile.length > 0
-      ? state.gameState.discard_pile[state.gameState.discard_pile.length - 1]
+    gameState.discard_top ||
+    (gameState.discard_pile && gameState.discard_pile.length > 0
+      ? gameState.discard_pile[gameState.discard_pile.length - 1]
       : null);
 
-  // Check if current player is the table creator (first player)
+  // Check if current player is the table creator
   const isCreator =
-    state.table.players &&
-    state.table.players.length > 0 &&
-    state.player &&
-    state.player.id === state.table.players[0].id;
+    table.creator_id && state.player && state.player.id === table.creator_id;
 
   const isCurrentPlayer =
-    state.player && state.gameState.current_player_id === state.player.id;
+    state.player && gameState.current_player_id === state.player.id;
+
   const canDeclareUno =
     state.player &&
     state.player.hand_count === 1 &&
@@ -98,8 +124,8 @@ function GameTable() {
 
   // Check if any player has 1 card but hasn't declared UNO
   const canChallengeUno =
-    state.gameState.players &&
-    state.gameState.players.some(
+    gameState.players &&
+    gameState.players.some(
       (player) =>
         player.hand_count === 1 &&
         player.uno_declaration !== "declared" &&
@@ -107,35 +133,39 @@ function GameTable() {
     );
 
   // Get current player count
-  const playerCount = state.table.players ? state.table.players.length : 0;
-  const maxPlayers = state.table.max_players || 10;
+  const playerCount = table.players ? table.players.length : 0;
+  const maxPlayers = table.max_players || 10;
 
   return (
     <div className="game-table">
       <header className="game-header">
-        <h1>UNO Game - Table: {state.table.name}</h1>
+        <h1>UNO Game - Table: {table.name}</h1>
         {isSpectator && <div className="spectator-badge">SPECTATOR</div>}
+        <div className="connection-status">
+          Status: {isConnected ? "Connected" : "Disconnected"}
+        </div>
         <div className="game-status">
-          Status: {state.gameState.status}
-          {state.gameState.status === "completed" &&
-            state.gameState.winner_id && (
-              <span>
-                {" "}
-                - Winner:{" "}
-                {
-                  state.gameState.players.find(
-                    (p) => p.id === state.gameState.winner_id
-                  )?.username
-                }
-              </span>
-            )}
-          {state.gameState.current_player_id && (
+          Status: {gameState.status || "loading"}
+          <span className={`connection-status ${state.connectionStatus}`}>
+            ({state.connectionStatus})
+          </span>
+          {gameState.status === "completed" && gameState.winner_id && (
+            <span>
+              {" "}
+              - Winner:{" "}
+              {
+                gameState.players.find((p) => p.id === gameState.winner_id)
+                  ?.username
+              }
+            </span>
+          )}
+          {gameState.current_player_id && (
             <span>
               {" "}
               - Current Player:{" "}
               {
-                state.gameState.players.find(
-                  (p) => p.id === state.gameState.current_player_id
+                gameState.players.find(
+                  (p) => p.id === gameState.current_player_id
                 )?.username
               }
             </span>
@@ -146,14 +176,14 @@ function GameTable() {
       <div className="game-content">
         <div className="game-sidebar">
           <PlayerList
-            players={state.gameState.players}
-            spectators={state.gameState.spectators || []} // Pass spectators
-            currentPlayerId={state.gameState.current_player_id}
+            players={gameState.players || []}
+            spectators={gameState.spectators || []}
+            currentPlayerId={gameState.current_player_id}
           />
 
           <DiscardPile topCard={topCard} />
 
-          {!isSpectator && ( // Only show controls for players
+          {!isSpectator && (
             <GameControls
               onDrawCard={handleDrawCard}
               onDeclareUno={handleDeclareUno}
@@ -161,7 +191,7 @@ function GameTable() {
               canDeclareUno={canDeclareUno}
               canChallengeUno={canChallengeUno}
               isCurrentPlayer={isCurrentPlayer}
-              gameStatus={state.gameState.status}
+              gameStatus={gameState.status}
             />
           )}
         </div>
@@ -183,32 +213,31 @@ function GameTable() {
         </div>
       </div>
 
-      {state.gameState.status === "waiting" && !isSpectator && (
+      {gameState.status === "waiting" && !isSpectator && (
         <div className="start-game-prompt">
           <p>
             Waiting for players to join... ({playerCount}/{maxPlayers})
           </p>
-          {isCreator && (
-            <button onClick={handleStartGame} className="start-game-button">
-              Start Game
-            </button>
-          )}
+
+          <button onClick={handleStartGame} className="start-game-button">
+            "Start Game"
+          </button>
+
           {isCreator && playerCount < 2 && (
             <p className="waiting-message">Need at least 2 players to start</p>
           )}
         </div>
       )}
 
-      {state.gameState.status === "completed" && (
+      {gameState.status === "completed" && (
         <div className="game-over-prompt">
           <h2>Game Over!</h2>
-          {state.gameState.winner_id && (
+          {gameState.winner_id && (
             <p>
               Winner:{" "}
               {
-                state.gameState.players.find(
-                  (p) => p.id === state.gameState.winner_id
-                )?.username
+                gameState.players.find((p) => p.id === gameState.winner_id)
+                  ?.username
               }
             </p>
           )}

@@ -9,7 +9,32 @@ const api = axios.create({
   },
 });
 
-// Tables API
+// Add a request interceptor to include the auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token is invalid or expired, remove it from localStorage
+      localStorage.removeItem("auth_token");
+      window.location.reload(); // Reload the page to reset the state
+    }
+    return Promise.reject(error);
+  }
+);
 // Tables API
 export const tablesApi = {
   create: (name, maxPlayers = 10) =>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { tablesApi } from "../../services/api";
 import { useGame } from "../../contexts/GameContext";
 import "./Lobby.css";
-
+import api from "../../services/api";
 function Lobby() {
   const { state, dispatch } = useGame();
   const [tables, setTables] = useState([]);
@@ -10,7 +10,47 @@ function Lobby() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTableName, setNewTableName] = useState("");
   const [username, setUsername] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  useEffect(() => {
+    const handleAuthError = (error) => {
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem("auth_token");
+        setIsAuthenticated(false);
+        dispatch({
+          type: "SET_ERROR",
+          payload: "Your session has expired. Please login again.",
+        });
+      }
+    };
 
+    // Add response interceptor
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        handleAuthError(error);
+        return Promise.reject(error);
+      }
+    );
+    return () => {
+      // Remove interceptor on component unmount
+      api.interceptors.response.eject(interceptor);
+    };
+  }, [dispatch]);
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("access_token");
+
+    if (token) {
+      localStorage.setItem("auth_token", token);
+      setIsAuthenticated(true);
+      // Clean the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      // Check if we already have a token
+      const existingToken = localStorage.getItem("auth_token");
+      setIsAuthenticated(!!existingToken);
+    }
+  }, []);
   const fetchTables = useCallback(async () => {
     try {
       setLoading(true);
@@ -48,14 +88,17 @@ function Lobby() {
   };
 
   const joinTable = async (tableId) => {
-    if (!username.trim()) {
-      dispatch({ type: "SET_ERROR", payload: "Please enter a username" });
-      return;
-    }
+    const token = localStorage.getItem("auth_token");
 
     try {
       setLoading(true);
-      const response = await tablesApi.join(tableId, username);
+      const config = token
+        ? {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        : {};
+
+      const response = await tablesApi.join(tableId, username, config);
 
       // Handle the response correctly
       if (response.data) {
@@ -111,22 +154,43 @@ function Lobby() {
     }
   };
   const handleGoogleLogin = () => {
-    // Redirect to Google login endpoint
-    window.location.href = "http://localhost:8000/auth/google/login";
+    // Redirect to Google login endpoint with redirect back to lobby
+    window.location.href =
+      "http://localhost:8000/auth/google/login?redirect_url=http://localhost:3000";
   };
+
+  // Add this useEffect to check for existing auth token
 
   return (
     <div className="lobby">
       <h1>UNO Game Lobby</h1>
 
-      {/* Google Login Button */}
-      <div className="google-login-section">
-        <button onClick={handleGoogleLogin} className="google-login-btn">
-          <img src="/google-logo.png" alt="Google" />
-          Sign in with Google
-        </button>
-        <p>Or join as a guest below</p>
-      </div>
+      {/* Google Login Button - only show if not authenticated */}
+      {!isAuthenticated && (
+        <div className="google-login-section">
+          <button onClick={handleGoogleLogin} className="google-login-btn">
+            <img src="/google-logo.png" alt="Google" />
+            <span>Sign in with Google</span>
+          </button>
+          <p>Or join as a guest below</p>
+        </div>
+      )}
+
+      {/* Show user info if authenticated */}
+      {isAuthenticated && (
+        <div className="user-info">
+          <p>Logged in with Google</p>
+          <button
+            onClick={() => {
+              localStorage.removeItem("auth_token");
+              setIsAuthenticated(false);
+            }}
+            className="logout-btn"
+          >
+            Logout
+          </button>
+        </div>
+      )}
 
       {state.error && (
         <div className="error-message">
