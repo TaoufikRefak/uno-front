@@ -223,11 +223,9 @@ function GameTable() {
             Waiting for players to join... ({playerCount}/{maxPlayers})
           </p>
 
-          <button
-            onClick={handleStartGame}
-            className="start-game-button"
-            // <-- ADD THIS LINE
-          ></button>
+          <button onClick={handleStartGame} className="start-game-button">
+            START GAME
+          </button>
 
           {isCreator && playerCount < 2 && (
             <p className="waiting-message">Need at least 2 players to start</p>
