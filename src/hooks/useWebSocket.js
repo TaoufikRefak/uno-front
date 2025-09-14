@@ -11,6 +11,9 @@ export function useWebSocket() {
     console.log("Received message:", message);
 
     switch (message.type) {
+      case "role_assigned":
+        dispatch({ type: "SET_ROLE", payload: message.data.role });
+        break;
       case "game_state":
         dispatch({ type: "SET_GAME_STATE", payload: message.data });
 

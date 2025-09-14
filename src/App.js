@@ -9,10 +9,18 @@ import Lobby from "./components/Lobby/Lobby";
 import "./App.css";
 
 function GameTable() {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
   const { connect, sendMessage } = useWebSocket();
 
+  // Add a check for spectator role
+  const isSpectator = state.role === "spectator";
+
+  // Disable game actions for spectators
   const handlePlayCard = (cardIndex, chosenColor) => {
+    if (isSpectator) {
+      dispatch({ type: "SET_ERROR", payload: "Spectators cannot play cards" });
+      return;
+    }
     sendMessage({
       type: "play_card",
       card_index: cardIndex,
@@ -21,18 +29,33 @@ function GameTable() {
   };
 
   const handleDrawCard = () => {
+    if (isSpectator) {
+      dispatch({ type: "SET_ERROR", payload: "Spectators cannot draw cards" });
+      return;
+    }
     sendMessage({
       type: "draw_card",
     });
   };
 
   const handleDeclareUno = () => {
+    if (isSpectator) {
+      dispatch({ type: "SET_ERROR", payload: "Spectators cannot declare UNO" });
+      return;
+    }
     sendMessage({
       type: "declare_uno",
     });
   };
 
   const handleChallengeUno = (playerId) => {
+    if (isSpectator) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: "Spectators cannot challenge UNO",
+      });
+      return;
+    }
     sendMessage({
       type: "challenge_uno",
       target_player_id: playerId,
@@ -40,6 +63,10 @@ function GameTable() {
   };
 
   const handleStartGame = () => {
+    if (isSpectator) {
+      dispatch({ type: "SET_ERROR", payload: "Spectators cannot start games" });
+      return;
+    }
     sendMessage({
       type: "start_game",
     });
@@ -87,6 +114,7 @@ function GameTable() {
     <div className="game-table">
       <header className="game-header">
         <h1>UNO Game - Table: {state.table.name}</h1>
+        {isSpectator && <div className="spectator-badge">SPECTATOR</div>}
         <div className="game-status">
           Status: {state.gameState.status}
           {state.gameState.status === "completed" &&
@@ -119,32 +147,43 @@ function GameTable() {
         <div className="game-sidebar">
           <PlayerList
             players={state.gameState.players}
+            spectators={state.gameState.spectators || []} // Pass spectators
             currentPlayerId={state.gameState.current_player_id}
           />
 
           <DiscardPile topCard={topCard} />
 
-          <GameControls
-            onDrawCard={handleDrawCard}
-            onDeclareUno={handleDeclareUno}
-            onChallengeUno={handleChallengeUno}
-            canDeclareUno={canDeclareUno}
-            canChallengeUno={canChallengeUno}
-            isCurrentPlayer={isCurrentPlayer}
-            gameStatus={state.gameState.status}
-          />
+          {!isSpectator && ( // Only show controls for players
+            <GameControls
+              onDrawCard={handleDrawCard}
+              onDeclareUno={handleDeclareUno}
+              onChallengeUno={handleChallengeUno}
+              canDeclareUno={canDeclareUno}
+              canChallengeUno={canChallengeUno}
+              isCurrentPlayer={isCurrentPlayer}
+              gameStatus={state.gameState.status}
+            />
+          )}
         </div>
 
         <div className="game-main">
-          <PlayerHand
-            cards={state.hand}
-            onPlayCard={handlePlayCard}
-            topCard={topCard}
-          />
+          {isSpectator ? (
+            <div className="spectator-view">
+              <h3>Spectator View</h3>
+              <p>You are watching this game as a spectator.</p>
+              <p>You cannot participate in the game actions.</p>
+            </div>
+          ) : (
+            <PlayerHand
+              cards={state.hand}
+              onPlayCard={handlePlayCard}
+              topCard={topCard}
+            />
+          )}
         </div>
       </div>
 
-      {state.gameState.status === "waiting" && (
+      {state.gameState.status === "waiting" && !isSpectator && (
         <div className="start-game-prompt">
           <p>
             Waiting for players to join... ({playerCount}/{maxPlayers})

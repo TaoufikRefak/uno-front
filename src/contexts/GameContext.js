@@ -11,10 +11,13 @@ const initialState = {
   sessionToken: localStorage.getItem("uno_session_token") || null,
   error: null,
   loading: false,
+  role: "player", // Add role field
 };
 
 function gameReducer(state, action) {
   switch (action.type) {
+    case "SET_ROLE":
+      return { ...state, role: action.payload };
     case "ADD_CARDS_TO_HAND":
       return {
         ...state,

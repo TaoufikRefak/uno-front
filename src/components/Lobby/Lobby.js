@@ -70,15 +70,18 @@ function Lobby() {
           username: username,
           hand: [],
           is_online: true,
+          role: response.data.role || "player", // Get role from response
         };
 
         dispatch({ type: "SET_PLAYER", payload: playerData });
+        dispatch({ type: "SET_ROLE", payload: response.data.role || "player" }); // Set role
 
         // Create a table object
         const tableData = {
           id: tableId,
           name: "", // We'll get this from the table details
-          players: [playerData], // Start with the current player
+          players: response.data.role === "player" ? [playerData] : [], // Only add to players if not spectator
+          spectators: response.data.role === "spectator" ? [playerData] : [], // Add to spectators if spectator
         };
 
         dispatch({ type: "SET_TABLE", payload: tableData });

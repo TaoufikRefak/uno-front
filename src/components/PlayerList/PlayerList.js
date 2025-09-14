@@ -1,7 +1,7 @@
 import React from "react";
 import "./PlayerList.css";
 
-function PlayerList({ players, currentPlayerId }) {
+function PlayerList({ players, spectators = [], currentPlayerId }) {
   return (
     <div className="player-list">
       <h3>Players</h3>
@@ -22,8 +22,24 @@ function PlayerList({ players, currentPlayerId }) {
           </li>
         ))}
       </ul>
+
+      {spectators.length > 0 && (
+        <>
+          <h4>Spectators</h4>
+          <ul>
+            {spectators.map((spectator) => (
+              <li key={spectator.id}>
+                <span className="spectator-name">{spectator.username}</span>
+                <span className="spectator-badge">👁️</span>
+                {!spectator.is_online && (
+                  <span className="offline-badge">Offline</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
-
 export default PlayerList;
