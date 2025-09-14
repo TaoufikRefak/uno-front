@@ -110,10 +110,23 @@ function Lobby() {
       setLoading(false);
     }
   };
+  const handleGoogleLogin = () => {
+    // Redirect to Google login endpoint
+    window.location.href = "http://localhost:8000/auth/google/login";
+  };
 
   return (
     <div className="lobby">
       <h1>UNO Game Lobby</h1>
+
+      {/* Google Login Button */}
+      <div className="google-login-section">
+        <button onClick={handleGoogleLogin} className="google-login-btn">
+          <img src="/google-logo.png" alt="Google" />
+          Sign in with Google
+        </button>
+        <p>Or join as a guest below</p>
+      </div>
 
       {state.error && (
         <div className="error-message">
