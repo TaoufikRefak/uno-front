@@ -8,80 +8,69 @@ export function useWebSocket() {
   const reconnectTimeoutRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  const handleMessage = (message) => {
-    console.log("Received message:", message);
+  const handleMessage = useCallback(
+    (message) => {
+      console.log("WebSocket message received:", message);
 
-    switch (message.type) {
-      case "role_assigned":
-        dispatch({ type: "SET_ROLE", payload: message.data.role });
-        break;
-      case "game_state":
-        dispatch({ type: "SET_GAME_STATE", payload: message.data });
+      console.log("Received message:", message);
 
-        // Check if game has ended
-        if (message.data.status === "completed" && message.data.winner_id) {
-          const winner = message.data.players.find(
-            (p) => p.id === message.data.winner_id
-          );
-          if (winner) {
+      switch (message.type) {
+        case "role_assigned":
+          dispatch({ type: "SET_ROLE", payload: message.data.role });
+          break;
+        case "game_state":
+          dispatch({ type: "SET_GAME_STATE", payload: message.data });
+          if (message.data.status === "completed" && message.data.winner_id) {
+            const winner = message.data.players.find(
+              (p) => p.id === message.data.winner_id
+            );
+            if (winner) {
+              dispatch({
+                type: "SET_ERROR",
+                payload: `Game over! ${winner.username} wins!`,
+              });
+            }
+          }
+          break;
+        case "your_hand":
+          dispatch({ type: "SET_HAND", payload: message.data });
+          break;
+        case "card_drawn":
+          if (message.data && message.data.cards) {
             dispatch({
-              type: "SET_ERROR",
-              payload: `Game over! ${winner.username} wins!`,
+              type: "ADD_CARDS_TO_HAND",
+              payload: message.data.cards,
             });
           }
-        }
-        break;
-
-      case "your_hand":
-        // Update the player's hand
-        dispatch({ type: "SET_HAND", payload: message.data });
-        break;
-
-      case "card_drawn":
-        if (message.data && message.data.cards) {
-          dispatch({
-            type: "ADD_CARDS_TO_HAND",
-            payload: message.data.cards,
-          });
-        }
-        break;
-
-      case "card_played":
-      case "turn_changed":
-      case "player_joined":
-      case "player_left":
-      case "uno_declared":
-      case "uno_penalty":
-      case "uno_challenge_failed":
-      case "player_one_card":
-        // These events will trigger a game state update from the server
-        break;
-
-      case "play_card_result":
-      case "draw_card_result":
-      case "start_game_result":
-      case "declare_uno_result":
-      case "challenge_uno_result":
-        if (!message.data.success) {
-          dispatch({ type: "SET_ERROR", payload: message.data.error });
-        }
-        break;
-
-      case "error":
-        dispatch({ type: "SET_ERROR", payload: message.data.message });
-        break;
-
-      case "pong":
-        // Handle pong response
-        break;
-
-      default:
-        console.log("Unhandled message type:", message.type);
-    }
-  };
+          break;
+        case "play_card_result":
+        case "draw_card_result":
+        case "start_game_result":
+        case "declare_uno_result":
+        case "challenge_uno_result":
+          if (!message.data.success) {
+            dispatch({ type: "SET_ERROR", payload: message.data.error });
+          }
+          break;
+        case "error":
+          dispatch({ type: "SET_ERROR", payload: message.data.message });
+          break;
+        default:
+          console.log("Unhandled message type:", message.type);
+      }
+    },
+    [dispatch]
+  );
 
   const connect = useCallback(
     (tableId, sessionToken) => {
+      console.log(
+        "Connecting to WebSocket with table:",
+        tableId,
+        "session:",
+        sessionToken
+      );
+
       // Don't reconnect if already connected/connecting
       if (
         websocketRef.current &&
@@ -112,7 +101,7 @@ export function useWebSocket() {
         websocketRef.current = null;
       }
 
-      const wsUrl = `ws://localhost:8000/ws/table/${tableId}?session_token=${sessionToken}`;
+      const wsUrl = `ws://${window.location.hostname}:8000/ws/table/${tableId}?session_token=${sessionToken}`;
 
       websocketRef.current = new UnoWebSocket(
         wsUrl,
@@ -147,38 +136,19 @@ export function useWebSocket() {
 
       websocketRef.current.connect();
     },
-    [dispatch]
+    [dispatch, handleMessage]
   );
 
-  const sendMessage = (message) => {
+  const sendMessage = useCallback((message) => {
     if (
-      isConnected &&
       websocketRef.current &&
       websocketRef.current.getReadyState() === WebSocket.OPEN
     ) {
       return websocketRef.current.send(message);
     }
     console.error("WebSocket is not connected, cannot send message");
-
-    // Try to reconnect if not connected
-    if (state.table && state.sessionToken) {
-      console.log("Attempting to reconnect...");
-      connect(state.table.id, state.sessionToken);
-
-      // Queue the message to send after reconnection
-      setTimeout(() => {
-        if (
-          isConnected &&
-          websocketRef.current &&
-          websocketRef.current.getReadyState() === WebSocket.OPEN
-        ) {
-          websocketRef.current.send(message);
-        }
-      }, 1000);
-    }
-
     return false;
-  };
+  }, []);
 
   const disconnect = useCallback(() => {
     setIsConnected(false);
@@ -196,14 +166,13 @@ export function useWebSocket() {
     dispatch({ type: "SET_CONNECTION_STATUS", payload: "disconnected" });
   }, [dispatch]);
 
+  // Connect when table and session token are available
   useEffect(() => {
-    // Only connect if we have both table and session token
     if (state.table && state.sessionToken) {
       console.log("Connecting to WebSocket...");
       connect(state.table.id, state.sessionToken);
     }
 
-    // Cleanup on unmount
     return () => {
       console.log("Cleaning up WebSocket connection...");
       disconnect();

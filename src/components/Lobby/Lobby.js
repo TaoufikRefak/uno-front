@@ -110,10 +110,11 @@ function Lobby() {
         // Create a player object from the response
         const playerData = {
           id: response.data.player_id,
+          user_id: response.data.user_id, // <-- ADD THIS
           username: username,
           hand: [],
           is_online: true,
-          role: response.data.role || "player", // Get role from response
+          role: response.data.role || "player",
         };
 
         dispatch({ type: "SET_PLAYER", payload: playerData });

@@ -10,7 +10,34 @@ import "./App.css";
 
 function GameTable() {
   const { state, dispatch } = useGame();
-  const { connect, sendMessage, isConnected } = useWebSocket();
+  const { sendMessage, isConnected, connectionStatus } = useWebSocket();
+  useEffect(() => {
+    if (
+      connectionStatus === "disconnected" &&
+      state.table &&
+      state.sessionToken
+    ) {
+      console.log("Attempting to connect WebSocket...");
+      // The useWebSocket hook will automatically handle reconnection
+    }
+  }, [connectionStatus, state.table, state.sessionToken]);
+
+  const handleStartGame = () => {
+    console.log("Start Game button clicked");
+    if (!isConnected) {
+      console.log("Not connected to WebSocket");
+      dispatch({
+        type: "SET_ERROR",
+        payload: "Not connected to the game server. Please wait...",
+      });
+      return;
+    }
+
+    console.log("Sending start_game message");
+    sendMessage({
+      type: "start_game",
+    });
+  };
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -77,29 +104,6 @@ function GameTable() {
     sendMessage({
       type: "challenge_uno",
       target_player_id: playerId,
-    });
-  };
-
-  const handleStartGame = () => {
-    if (!isConnected) {
-      dispatch({
-        type: "SET_ERROR",
-        payload: "Not connected to the game server. Please wait...",
-      });
-
-      if (state.table && state.sessionToken) {
-        connect(state.table.id, state.sessionToken);
-      }
-      return;
-    }
-
-    if (isSpectator) {
-      dispatch({ type: "SET_ERROR", payload: "Spectators cannot start games" });
-      return;
-    }
-
-    sendMessage({
-      type: "start_game",
     });
   };
 
@@ -219,9 +223,11 @@ function GameTable() {
             Waiting for players to join... ({playerCount}/{maxPlayers})
           </p>
 
-          <button onClick={handleStartGame} className="start-game-button">
-            "Start Game"
-          </button>
+          <button
+            onClick={handleStartGame}
+            className="start-game-button"
+            // <-- ADD THIS LINE
+          ></button>
 
           {isCreator && playerCount < 2 && (
             <p className="waiting-message">Need at least 2 players to start</p>
