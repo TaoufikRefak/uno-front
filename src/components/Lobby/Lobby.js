@@ -159,7 +159,23 @@ function Lobby() {
     window.location.href =
       "http://localhost:8000/auth/google/login?redirect_url=http://localhost:3000";
   };
-
+  const handleAddBot = async (tableId) => {
+    try {
+      setLoading(true);
+      await tablesApi.addBot(tableId);
+      // After adding a bot, the game_state broadcast should update the UI,
+      // but fetching tables again is a good fallback.
+      fetchTables();
+    } catch (error) {
+      console.error("Error adding bot:", error);
+      dispatch({
+        type: "SET_ERROR",
+        payload: error.response?.data?.detail || "Failed to add bot",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   // Add this useEffect to check for existing auth token
 
   return (
@@ -254,20 +270,32 @@ function Lobby() {
                   </p>
                   <p>Status: {table.status}</p>
                 </div>
-                <button
-                  onClick={() => joinTable(table.id)}
-                  disabled={
-                    table.player_count >= table.max_players ||
-                    table.status !== "waiting"
-                  }
-                  className="join-table-btn"
-                >
-                  {table.player_count >= table.max_players
-                    ? "Full"
-                    : table.status !== "waiting"
-                    ? "Game in progress"
-                    : "Join Table"}
-                </button>
+                <div className="table-actions">
+                  <button
+                    onClick={() => joinTable(table.id)}
+                    disabled={
+                      table.player_count >= table.max_players ||
+                      table.status !== "waiting"
+                    }
+                    className="join-table-btn"
+                  >
+                    {table.player_count >= table.max_players
+                      ? "Full"
+                      : table.status !== "waiting"
+                      ? "Game in progress"
+                      : "Join Table"}
+                  </button>
+                  {table.status === "waiting" &&
+                    table.player_count < table.max_players && (
+                      <button
+                        onClick={() => handleAddBot(table.id)}
+                        className="add-bot-btn"
+                        disabled={loading}
+                      >
+                        Add Bot
+                      </button>
+                    )}
+                </div>
               </div>
             ))}
           </div>

@@ -11,7 +11,10 @@ function PlayerList({ players, spectators = [], currentPlayerId }) {
             key={player.id}
             className={player.id === currentPlayerId ? "current-player" : ""}
           >
-            <span className="player-name">{player.username}</span>
+            <span className="player-name">
+              {player.is_bot && "🤖 "}
+              {player.username}
+            </span>
             <span className="player-cards">{player.hand_count} cards</span>
             {player.uno_declaration === "declared" && (
               <span className="uno-badge">UNO!</span>

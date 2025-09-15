@@ -41,6 +41,7 @@ export const tablesApi = {
     api.post("/tables", null, {
       params: { name, max_players: maxPlayers },
     }),
+  addBot: (tableId) => api.post(`/tables/${tableId}/add_bot`), // <-- ADD THIS LINE
 
   list: () => api.get("/tables"),
 
